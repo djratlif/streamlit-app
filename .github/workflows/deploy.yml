@@ -6,7 +6,7 @@ on:
       - master
 
 env:
-  PROJECT_ID: captainhandy-comics
+  PROJECT_ID: streamlitexample-495201
   REGION: us-central1
   SERVICE_NAME: streamlit-app
   GAR_LOCATION: us-central1
