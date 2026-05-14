@@ -2,3 +2,7 @@ streamlit
 numpy
 pandas
 anthropic
+requests
+google-auth
+google-auth-oauthlib
+google-cloud-firestore
