@@ -10,7 +10,8 @@ st.markdown("Watch two AI heavyweights duke it out in real-time over your chosen
 
 # --- Sidebar ---
 st.sidebar.header("Configuration")
-anthropic_api_key = st.sidebar.text_input("Anthropic API Key (for all agents)", type="password", value=os.environ.get("ANTHROPIC_API_KEY", ""))
+anthropic_api_key_input = st.sidebar.text_input("Anthropic API Key (for all agents)", type="password", value=os.environ.get("ANTHROPIC_API_KEY", ""))
+anthropic_api_key = anthropic_api_key_input.strip()
 topic = st.sidebar.text_area("Debate Topic", "Is a hot dog a sandwich?")
 start_button = st.sidebar.button("Start Debate")
 
@@ -53,7 +54,7 @@ def generate_calvin_response(topic, history):
     )
     
     response = client.messages.create(
-        model="claude-3-5-sonnet-20240620",
+        model="claude-sonnet-4-6",
         max_tokens=300,
         system=system_prompt,
         messages=messages
@@ -80,7 +81,7 @@ def generate_chester_response(topic, history):
     )
         
     response = client.messages.create(
-        model="claude-3-5-sonnet-20240620",
+        model="claude-sonnet-4-6",
         max_tokens=300,
         system=system_prompt,
         messages=messages
@@ -98,11 +99,13 @@ def generate_judge_verdict(topic, history):
         f"You are an impartial, highly analytical judge. The topic of the debate was: '{topic}'.\n\n"
         f"Here is the transcript of the debate between Calvin and Chester:\n\n{transcript}\n\n"
         "Please analyze the debate. Evaluate their arguments, persuasiveness, conciseness, and rebuttals. "
-        "At the end, clearly declare the winner (either Calvin or Chester) and explain why."
+        "CRITICAL INSTRUCTION: You MUST explicitly declare a single winner. You are not allowed to call it a tie. "
+        "Conclude your analysis with a clear, prominent declaration of the winner formatted exactly like this: \n\n"
+        "### 🏆 WINNER: [Calvin or Chester]"
     )
     
     response = client.messages.create(
-        model="claude-3-5-sonnet-20240620",
+        model="claude-sonnet-4-6",
         max_tokens=800,
         system="You are the final judge of an AI debate. Provide a clear, detailed ruling.",
         messages=[
@@ -133,10 +136,10 @@ if st.session_state.debate_active and not st.session_state.debate_finished:
                 try:
                     calvin_text = generate_calvin_response(topic, history)
                     st.session_state.messages.append({"name": "Calvin", "role": "assistant", "avatar": "🦤", "content": calvin_text})
+                    st.rerun()
                 except Exception as e:
                     st.error(f"Error calling Anthropic API: {e}")
                     st.session_state.debate_active = False
-            st.rerun()
             
         # Chester's turn
         else:
@@ -144,10 +147,10 @@ if st.session_state.debate_active and not st.session_state.debate_finished:
                 try:
                     chester_text = generate_chester_response(topic, history)
                     st.session_state.messages.append({"name": "Chester", "role": "assistant", "avatar": "🤖", "content": chester_text})
+                    st.rerun()
                 except Exception as e:
                     st.error(f"Error calling Anthropic API: {e}")
                     st.session_state.debate_active = False
-            st.rerun()
     else:
         st.session_state.debate_finished = True
         st.rerun()
