@@ -1,7 +1,6 @@
 import streamlit as st
 import time
 import os
-from openai import OpenAI
 import anthropic
 
 st.set_page_config(page_title="AI Debate Arena", page_icon="⚖️", layout="wide")
@@ -11,8 +10,7 @@ st.markdown("Watch two AI heavyweights duke it out in real-time over your chosen
 
 # --- Sidebar ---
 st.sidebar.header("Configuration")
-openai_api_key = st.sidebar.text_input("OpenAI API Key (for Chester & The Judge)", type="password", value=os.environ.get("OPENAI_API_KEY", ""))
-anthropic_api_key = st.sidebar.text_input("Anthropic API Key (for Calvin)", type="password", value=os.environ.get("ANTHROPIC_API_KEY", ""))
+anthropic_api_key = st.sidebar.text_input("Anthropic API Key (for all agents)", type="password", value=os.environ.get("ANTHROPIC_API_KEY", ""))
 topic = st.sidebar.text_area("Debate Topic", "Is a hot dog a sandwich?")
 start_button = st.sidebar.button("Start Debate")
 
@@ -63,33 +61,34 @@ def generate_calvin_response(topic, history):
     return response.content[0].text
 
 def generate_chester_response(topic, history):
-    client = OpenAI(api_key=openai_api_key)
+    client = anthropic.Anthropic(api_key=anthropic_api_key)
     
-    messages = [
-        {"role": "system", "content": (
-            "You are Chester, a sharp, witty debater. You are debating Calvin. "
-            f"The topic of the debate is: {topic}. "
-            "Keep your responses concise (under 150 words). Focus on strong logical points, "
-            "rebutting Calvin when necessary, and making a persuasive case. "
-            f"You have {MAX_TURNS} turns total."
-        )}
-    ]
+    messages = []
     
     for msg in history:
         if msg["name"] == "Chester":
             messages.append({"role": "assistant", "content": msg["content"]})
         elif msg["name"] == "Calvin":
             messages.append({"role": "user", "content": f"Calvin says: {msg['content']}"})
-        
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=messages,
-        max_tokens=300
+            
+    system_prompt = (
+        "You are Chester, a sharp, witty debater. You are debating Calvin. "
+        f"The topic of the debate is: {topic}. "
+        "Keep your responses concise (under 150 words). Focus on strong logical points, "
+        "rebutting Calvin when necessary, and making a persuasive case. "
+        f"You have {MAX_TURNS} turns total."
     )
-    return response.choices[0].message.content
+        
+    response = client.messages.create(
+        model="claude-3-5-sonnet-20240620",
+        max_tokens=300,
+        system=system_prompt,
+        messages=messages
+    )
+    return response.content[0].text
 
 def generate_judge_verdict(topic, history):
-    client = OpenAI(api_key=openai_api_key)
+    client = anthropic.Anthropic(api_key=anthropic_api_key)
     
     transcript = ""
     for i, msg in enumerate(history):
@@ -102,19 +101,19 @@ def generate_judge_verdict(topic, history):
         "At the end, clearly declare the winner (either Calvin or Chester) and explain why."
     )
     
-    response = client.chat.completions.create(
-        model="gpt-4o",
+    response = client.messages.create(
+        model="claude-3-5-sonnet-20240620",
+        max_tokens=800,
+        system="You are the final judge of an AI debate. Provide a clear, detailed ruling.",
         messages=[
-            {"role": "system", "content": "You are the final judge of an AI debate. Provide a clear, detailed ruling."},
             {"role": "user", "content": prompt}
-        ],
-        max_tokens=800
+        ]
     )
-    return response.choices[0].message.content
+    return response.content[0].text
 
 if start_button:
-    if not openai_api_key or not anthropic_api_key:
-        st.error("Please provide both OpenAI and Anthropic API keys in the sidebar.")
+    if not anthropic_api_key:
+        st.error("Please provide an Anthropic API key in the sidebar.")
     elif not topic:
         st.error("Please provide a debate topic.")
     else:
@@ -146,7 +145,7 @@ if st.session_state.debate_active and not st.session_state.debate_finished:
                     chester_text = generate_chester_response(topic, history)
                     st.session_state.messages.append({"name": "Chester", "role": "assistant", "avatar": "🤖", "content": chester_text})
                 except Exception as e:
-                    st.error(f"Error calling OpenAI API: {e}")
+                    st.error(f"Error calling Anthropic API: {e}")
                     st.session_state.debate_active = False
             st.rerun()
     else:
@@ -162,7 +161,7 @@ if st.session_state.debate_finished:
             with st.chat_message("assistant", avatar="⚖️"):
                 st.markdown("**The Judge**: " + verdict)
         except Exception as e:
-            st.error(f"Error calling OpenAI API for Judge: {e}")
+            st.error(f"Error calling Anthropic API for Judge: {e}")
     
     if st.button("Reset Debate"):
         st.session_state.messages = []
