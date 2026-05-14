@@ -53,7 +53,7 @@ def get_user_info(access_token):
 
 @st.cache_resource
 def get_db():
-    return firestore.Client()
+    return firestore.Client(project="streamlitexample-495201", database="debateappdb")
 
 def get_user_key(email):
     try:
