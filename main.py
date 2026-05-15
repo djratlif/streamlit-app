@@ -97,8 +97,7 @@ if "code" in query_params and st.session_state.user is None:
     # Clear query parameters to clean up URL
     st.query_params.clear()
 
-st.title("⚖️ AI Debate Arena")
-st.markdown("Watch two AI heavyweights duke it out in real-time over your chosen topic!")
+st.title("AI Debate Arena")
 
 # --- Sidebar ---
 st.sidebar.header("Configuration")
@@ -155,8 +154,28 @@ start_button = st.sidebar.button("Start Debate")
 
 def render_messages():
     for msg in st.session_state.messages:
-        with st.chat_message(msg["role"], avatar=msg.get("avatar", None)):
-            st.markdown(f"**{msg['name']}**: {msg['content']}")
+        content = msg["content"].replace("\n", "<br>")
+        if msg["name"] == "Calvin":
+            st.markdown(
+                f'<div style="display:flex;justify-content:flex-start;margin:12px 0;">'
+                f'<div style="max-width:68%;background:#fee2e2;border-radius:4px 18px 18px 18px;padding:14px 18px;box-shadow:2px 2px 10px rgba(0,0,0,0.18);">'
+                f'<div style="font-size:11px;font-weight:700;color:#dc2626;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">&#x1F9A4; Calvin</div>'
+                f'<div style="color:#1a1a1a;line-height:1.6;font-size:15px;">{content}</div>'
+                f'</div></div>',
+                unsafe_allow_html=True
+            )
+        elif msg["name"] == "Chester":
+            st.markdown(
+                f'<div style="display:flex;justify-content:flex-end;margin:12px 0;">'
+                f'<div style="max-width:68%;background:#dbeafe;border-radius:18px 4px 18px 18px;padding:14px 18px;box-shadow:2px 2px 10px rgba(0,0,0,0.18);">'
+                f'<div style="font-size:11px;font-weight:700;color:#1d4ed8;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;text-align:right;">Chester &#x1F916;</div>'
+                f'<div style="color:#1a1a1a;line-height:1.6;font-size:15px;">{content}</div>'
+                f'</div></div>',
+                unsafe_allow_html=True
+            )
+        else:
+            with st.chat_message(msg["role"], avatar=msg.get("avatar", None)):
+                st.markdown(f"**{msg['name']}**: {msg['content']}")
 
 render_messages()
 
